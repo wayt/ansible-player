@@ -59,7 +59,9 @@ func (j *Job) Run() error {
 
 func (j *Job) clone(workdir string) error {
 
-	cmd := exec.Command("git", "clone", j.Git, workdir)
+	command := fmt.Sprintf(`git clone -v %s %s`, j.Git, workdir)
+
+	cmd := exec.Command("sh", "-c", command)
 
 	output, err := cmd.CombinedOutput()
 
