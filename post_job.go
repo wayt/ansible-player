@@ -33,9 +33,14 @@ func (this *postJobAction) Run() {
 		return
 	}
 
-	job.Writer = this.Context.Response
-
 	if err := job.Run(); err != nil {
 		panic(err)
 	}
+
+	data, err := job.Logs()
+	if err != nil {
+		panic(err)
+	}
+
+	this.Send(200, string(data))
 }

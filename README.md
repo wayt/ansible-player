@@ -11,7 +11,7 @@ site:
 
 ansible-player will use the container ssh key to clone / access to the servers.
 
-* `docker run -d --name ansible-player --restart=always -p 8080:8080 -v /your/.ssh/directory:/root/.ssh -v /your/jobs/file:/root/jobs:ro -v /your/access/file:/root/access:ro -e AUTH_FILE=/root/access -e JOB_FILE=/root/jobs maxwayt/ansible-player`
+* `docker run -d --name ansible-player --restart=always -p 8080:8080 -v /your/.ssh/directory:/root/.ssh -v /your/jobs/file:/root/jobs:ro -v /your/access/file:/root/access:ro -v /your/logs/directory:/root/logs -e LOG_DIR=/root/logs -e AUTH_FILE=/root/access -e JOB_FILE=/root/jobs maxwayt/ansible-player`
 
 To run a playbook with curl:
 
