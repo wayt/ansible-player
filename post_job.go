@@ -1,46 +1,38 @@
 package main
 
 import (
-	"github.com/wayt/happyngine"
+	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
-type postJobAction struct {
-	happyngine.Action
-}
+func postJobAction(c *gin.Context) {
 
-func newPostJobAction(context *happyngine.Context) happyngine.ActionInterface {
+	f := new(CreateJobForm)
+	if err := c.Bind(f); err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+		return
+	}
 
-	// Init
-	this := &postJobAction{}
-	this.Context = context
-
-	this.Form = happyngine.NewForm(context,
-		happyngine.NewFormElement("name", "invalid_job"))
-
-	return this
-}
-
-func (this *postJobAction) Run() {
+	if err := f.Validate(); err != nil {
+		c.JSON(http.StatusBadRequest, err)
+		return
+	}
 
 	// Get assotiated playbook
-	job, err := GetJob(this.Form.Elem("name").FormValue())
+	job, err := GetJob(f.Name)
 	if err != nil {
 		panic(err)
 	}
 
 	if job == nil {
-		this.AddError(404, "Unknown job")
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 
 	if err := job.Run(); err != nil {
-		panic(err)
+		c.String(http.StatusInternalServerError, err.Error())
+		return
 	}
 
-	data, err := job.Logs()
-	if err != nil {
-		panic(err)
-	}
-
-	this.Send(200, string(data))
+	c.JSON(http.StatusOK, job)
 }

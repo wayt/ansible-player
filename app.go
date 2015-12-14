@@ -1,43 +1,23 @@
 package main
 
 import (
-	"github.com/wayt/happyngine"
-	"github.com/wayt/happyngine/log"
+	"github.com/gin-gonic/gin"
+	"github.com/gotoolz/env"
 	"math/rand"
-	"net/http"
-	"runtime"
 	"time"
 )
 
 func main() {
 
-	app := happyngine.NewAPI()
+	r := gin.Default()
+	r.Use(AuthMiddleware())
 
 	// Setup seed
 	rand.Seed(time.Now().UnixNano())
 
 	// Register actions
-	app.AddRoute("POST", "/job", newPostJobAction, NewAuthMiddleware())
+	r.POST("/job", postJobAction)
+	r.GET("/job/:id", getJobAction)
 
-	// Setup custuom 404 handler
-	app.Error404Handler = func(ctx *happyngine.Context, err interface{}) {
-
-		ctx.Send(http.StatusNotFound, `not found 404`)
-	}
-
-	// Setup custuom panic handler
-	app.PanicHandler = func(ctx *happyngine.Context, err interface{}) {
-
-		ctx.Send(500, `internal error`)
-
-		trace := make([]byte, 1024)
-		runtime.Stack(trace, true)
-
-		ctx.Criticalln(err, string(trace))
-	}
-
-	log.Debugln("Running...")
-	if err := app.Run(":8080"); err != nil {
-		log.Criticalln("app.Run:", err)
-	}
+	r.Run(env.GetDefault("BIND_ADDRESS", ":8080"))
 }

@@ -3,19 +3,30 @@ package main
 import (
 	"crypto/sha1"
 	"fmt"
+	"github.com/gotoolz/validator"
 	"github.com/wayt/happyngine/env"
 	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"strings"
 	"time"
 )
 
+type CreateJobForm struct {
+	Name string `form:"name" json:"name" valid:"ascii,required"`
+}
+
+func (f *CreateJobForm) Validate() error {
+	return validator.Validate(f)
+}
+
 type Job struct {
-	Name    string
-	Git     string
-	Command string
+	Name    string `json:"name"`
+	JobId   string `json:"job_id"`
+	Git     string `json:"-"`
+	Command string `json:"-"`
 	logFile string
 	log     io.WriteCloser
 }
@@ -42,6 +53,19 @@ func GetJob(name string) (*Job, error) {
 	return nil, nil
 }
 
+func GetJobLogs(id string) ([]byte, error) {
+
+	data, err := ioutil.ReadFile(fmt.Sprintf("%s/%s.log", env.Get("LOG_DIR"), id))
+	if err != nil {
+		if strings.Contains(err.Error(), "no such file or directory") {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return data, nil
+}
+
 func (j *Job) Logs() ([]byte, error) {
 
 	return ioutil.ReadFile(j.logFile)
@@ -49,9 +73,9 @@ func (j *Job) Logs() ([]byte, error) {
 
 func (j *Job) Run() error {
 
-	buildId := fmt.Sprintf("%x", sha1.Sum([]byte(j.Name+time.Now().String())))
+	j.JobId = fmt.Sprintf("%s-%x", j.Name, sha1.Sum([]byte(j.Name+time.Now().String())))
 
-	j.logFile = fmt.Sprintf("%s/%s.log", env.Get("LOG_DIR"), buildId)
+	j.logFile = fmt.Sprintf("%s/%s.log", env.Get("LOG_DIR"), j.JobId)
 	log, err := os.OpenFile(j.logFile, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		return err
@@ -60,9 +84,9 @@ func (j *Job) Run() error {
 
 	j.log = log
 
-	fmt.Fprintf(log, "New build %s - %s\n", buildId, time.Now().String())
+	fmt.Fprintf(log, "New build %s - %s\n", j.JobId, time.Now().String())
 
-	workdir := fmt.Sprintf("/tmp/%s", buildId)
+	workdir := fmt.Sprintf("/tmp/%s", j.JobId)
 	defer os.RemoveAll(workdir)
 
 	if err := j.clone(workdir); err != nil {

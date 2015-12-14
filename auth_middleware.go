@@ -3,55 +3,40 @@ package main
 import (
 	"bufio"
 	"crypto/sha1"
-	"errors"
 	"fmt"
-	"github.com/wayt/happyngine"
-	"github.com/wayt/happyngine/env"
+	"github.com/gin-gonic/gin"
+	"github.com/gotoolz/env"
+	"log"
+	"net/http"
 	"os"
 	"strings"
 )
 
-type AuthMiddleware struct {
-	happyngine.Middleware
-}
+func AuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
 
-func NewAuthMiddleware() happyngine.MiddlewareHandler {
+		username, password, ok := c.Request.BasicAuth()
+		if !ok {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
 
-	return func(context *happyngine.Context) happyngine.MiddlewareInterface {
+		if !validateAuth(username, password) {
+			c.AbortWithStatus(http.StatusForbidden)
+			return
+		}
 
-		this := &AuthMiddleware{happyngine.Middleware{context}}
-		return this
+		c.Next()
 	}
 }
 
-func (this *AuthMiddleware) HandleBefore() (err error) {
-
-	username, password, ok := this.Context.Request.BasicAuth()
-	if !ok {
-		this.Context.Send(403, `Missing http auth`)
-		return errors.New("Missing http auth")
-	}
-
-	if !this.validate(username, password) {
-		this.Context.Send(403, `Unauthorized`)
-		return errors.New("Unauthorized")
-	}
-
-	return nil
-}
-
-func (this *AuthMiddleware) HandleAfter() error {
-
-	return nil
-}
-
-func (this *AuthMiddleware) validate(username, password string) bool {
+func validateAuth(username, password string) bool {
 
 	// Password sha1
 	password = fmt.Sprintf("%x", sha1.Sum([]byte(password)))
 
 	// Re-open auth file each time, to avoid reloading it
-	file, err := os.Open(env.Get("AUTH_FILE"))
+	file, err := os.Open(env.GetDefault("AUTH_FILE", "access"))
 	if err != nil {
 		panic(err)
 	}
@@ -71,6 +56,7 @@ func (this *AuthMiddleware) validate(username, password string) bool {
 			continue
 		}
 
+		log.Println(splited, username, password)
 		// Check credentials
 		if splited[0] == username && splited[1] == password {
 			return true
@@ -80,6 +66,8 @@ func (this *AuthMiddleware) validate(username, password string) bool {
 	if err := scanner.Err(); err != nil {
 		panic(err)
 	}
+
+	log.Println("Bad password")
 
 	return false
 
