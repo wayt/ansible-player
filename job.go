@@ -68,18 +68,16 @@ func GetJobLogs(id string) ([]byte, error) {
 	return data, nil
 }
 
-func (j *Job) parseLogs() ([]byte, error) {
+func (j *Job) parseLogs() {
 
-	data, err := ioutil.ReadFile(j.logFile)
-	if err != nil {
-		return nil, err
-	}
+	data, _ := ioutil.ReadFile(j.logFile)
 
 	j.Logs = string(data)
-	return data, nil
 }
 
 func (j *Job) Run() error {
+
+	defer j.parseLogs()
 
 	j.JobId = fmt.Sprintf("%s-%x", j.Name, sha1.Sum([]byte(j.Name+time.Now().String())))
 
@@ -108,8 +106,7 @@ func (j *Job) Run() error {
 		return err
 	}
 
-	_, err = j.parseLogs()
-	return err
+	return nil
 }
 
 func (j *Job) clone(workdir string) error {
