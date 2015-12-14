@@ -29,10 +29,12 @@ func postJobAction(c *gin.Context) {
 		return
 	}
 
-	if err := job.Run(); err != nil {
-		c.String(http.StatusInternalServerError, err.Error())
-		return
+	job.Run()
+
+	status := http.StatusOK
+	if job.Error != nil {
+		status = http.StatusInternalServerError
 	}
 
-	c.JSON(http.StatusOK, job)
+	c.JSON(status, job)
 }

@@ -25,10 +25,12 @@ func (f *CreateJobForm) Validate() error {
 type Job struct {
 	Name    string `json:"name"`
 	JobId   string `json:"job_id"`
+	Error   error  `json:"error"`
 	Git     string `json:"-"`
 	Command string `json:"-"`
 	logFile string
 	log     io.WriteCloser
+	Logs    string `json:"logs"`
 }
 
 func GetJob(name string) (*Job, error) {
@@ -66,9 +68,15 @@ func GetJobLogs(id string) ([]byte, error) {
 	return data, nil
 }
 
-func (j *Job) Logs() ([]byte, error) {
+func (j *Job) parseLogs() ([]byte, error) {
 
-	return ioutil.ReadFile(j.logFile)
+	data, err := ioutil.ReadFile(j.logFile)
+	if err != nil {
+		return nil, err
+	}
+
+	j.Logs = string(data)
+	return data, nil
 }
 
 func (j *Job) Run() error {
@@ -78,6 +86,7 @@ func (j *Job) Run() error {
 	j.logFile = fmt.Sprintf("%s/%s.log", env.Get("LOG_DIR"), j.JobId)
 	log, err := os.OpenFile(j.logFile, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
+		j.Error = err
 		return err
 	}
 	defer log.Close()
@@ -90,14 +99,17 @@ func (j *Job) Run() error {
 	defer os.RemoveAll(workdir)
 
 	if err := j.clone(workdir); err != nil {
+		j.Error = err
 		return err
 	}
 
 	if err := j.command(workdir); err != nil {
+		j.Error = err
 		return err
 	}
 
-	return nil
+	_, err = j.parseLogs()
+	return err
 }
 
 func (j *Job) clone(workdir string) error {
