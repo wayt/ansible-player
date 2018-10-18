@@ -1,9 +1,23 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
+	"errors"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
+
+type CreateJobForm struct {
+	Name string `form:"name" json:"name" valid:"ascii,required"`
+}
+
+func (f *CreateJobForm) Validate() error {
+	if f.Name == "" {
+		errors.New("name is required")
+	}
+
+	return nil
+}
 
 func postJobAction(c *gin.Context) {
 
