@@ -4,12 +4,17 @@ import (
 	"bufio"
 	"crypto/sha1"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/gotoolz/env"
 	"log"
 	"net/http"
 	"os"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+)
+
+const (
+	envAuthFile     = "AUTH_FILE"
+	defaultAuthFile = "access"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
@@ -35,8 +40,13 @@ func validateAuth(username, password string) bool {
 	// Password sha1
 	password = fmt.Sprintf("%x", sha1.Sum([]byte(password)))
 
+	authFile := defaultAuthFile
+	if e := os.Getenv(envAuthFile); e != "" {
+		authFile = e
+	}
+
 	// Re-open auth file each time, to avoid reloading it
-	file, err := os.Open(env.GetDefault("AUTH_FILE", "access"))
+	file, err := os.Open(authFile)
 	if err != nil {
 		panic(err)
 	}

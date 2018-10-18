@@ -3,24 +3,20 @@ package main
 import (
 	"crypto/sha1"
 	"fmt"
-	"github.com/gotoolz/validator"
-	"github.com/wayt/happyngine/env"
-	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
+
+	"gopkg.in/yaml.v2"
 )
 
-type CreateJobForm struct {
-	Name string `form:"name" json:"name" valid:"ascii,required"`
-}
-
-func (f *CreateJobForm) Validate() error {
-	return validator.Validate(f)
-}
+const (
+	envJobFile      = "JOB_FILE"
+	envLogDirectory = "LOG_DIR"
+)
 
 type Job struct {
 	Name    string `json:"name"`
@@ -35,7 +31,7 @@ type Job struct {
 
 func GetJob(name string) (*Job, error) {
 
-	data, err := ioutil.ReadFile(env.Get("JOB_FILE"))
+	data, err := ioutil.ReadFile(os.Getenv(envJobFile))
 	if err != nil {
 		return nil, err
 	}
@@ -57,7 +53,7 @@ func GetJob(name string) (*Job, error) {
 
 func GetJobLogs(id string) ([]byte, error) {
 
-	data, err := ioutil.ReadFile(fmt.Sprintf("%s/%s.log", env.Get("LOG_DIR"), id))
+	data, err := ioutil.ReadFile(fmt.Sprintf("%s/%s.log", os.Getenv(envLogDirectory), id))
 	if err != nil {
 		if strings.Contains(err.Error(), "no such file or directory") {
 			return nil, nil
@@ -81,7 +77,7 @@ func (j *Job) Run() error {
 
 	j.JobId = fmt.Sprintf("%s-%x", j.Name, sha1.Sum([]byte(j.Name+time.Now().String())))
 
-	j.logFile = fmt.Sprintf("%s/%s.log", env.Get("LOG_DIR"), j.JobId)
+	j.logFile = fmt.Sprintf("%s/%s.log", os.Getenv(envLogDirectory), j.JobId)
 	log, err := os.OpenFile(j.logFile, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		j.Error = err

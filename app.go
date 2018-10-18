@@ -1,10 +1,16 @@
 package main
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/gotoolz/env"
 	"math/rand"
+	"os"
 	"time"
+
+	"github.com/gin-gonic/gin"
+)
+
+const (
+	envBindAddress     = "BIND_ADDRESS"
+	defaultBindAddress = ":8080"
 )
 
 func main() {
@@ -19,5 +25,10 @@ func main() {
 	r.POST("/job", postJobAction)
 	r.GET("/job/:id", getJobAction)
 
-	r.Run(env.GetDefault("BIND_ADDRESS", ":8080"))
+	bind := defaultBindAddress
+	if e := os.Getenv(envBindAddress); e != "" {
+		bind = e
+	}
+
+	r.Run(bind)
 }
