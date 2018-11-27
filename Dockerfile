@@ -1,14 +1,22 @@
 # Pull base image.
-FROM ubuntu:trusty
+FROM ubuntu:bionic
 
 # Install ansible stuff
-RUN apt-get install -y software-properties-common
-RUN apt-add-repository ppa:ansible/ansible
-RUN apt-get update
-RUN apt-get install -y ansible
+RUN apt-get update && \
+    apt-get install -y software-properties-common && \
+    apt-add-repository ppa:ansible/ansible && \
+    apt-get update && \
+    apt-get install -y -q ansible
 
-RUN apt-get update -y && apt-get install --no-install-recommends -y -q curl build-essential ca-certificates git mercurial bzr
-RUN mkdir /goroot && curl https://storage.googleapis.com/golang/go1.4.2.linux-amd64.tar.gz | tar xvzf - -C /goroot --strip-components=1
+RUN apt-get install --no-install-recommends -y -q \
+        curl \
+        build-essential \
+        ca-certificates \
+        git \
+        mercurial \
+        bzr \
+        && rm -rf /var/lib/apt/lists/*
+RUN mkdir /goroot && curl https://storage.googleapis.com/golang/go1.11.2.linux-amd64.tar.gz | tar xvzf - -C /goroot --strip-components=1
 RUN mkdir /gopath
 
 ENV GOROOT /goroot
